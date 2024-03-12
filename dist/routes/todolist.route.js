@@ -76,11 +76,16 @@ app.post("/:list_id/item", (req, res) => {
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if (theListIndex != -1) {
         if (req.body.task) {
-            todoArray[theListIndex].listItems.length;
-            let newListItem = new todolistitem_model_1.TodoListItem(itemIds, req.body.task);
-            todoArray[theListIndex].listItems.push(newListItem);
-            itemIds++;
-            res.status(201).send(newListItem);
+            if (typeof req.body.completed == "boolean") {
+                todoArray[theListIndex].listItems.length;
+                let newListItem = new todolistitem_model_1.TodoListItem(itemIds, req.body.task);
+                todoArray[theListIndex].listItems.push(newListItem);
+                itemIds++;
+                res.status(201).send(newListItem);
+            }
+            else {
+                res.status(400).send({ status: 400, message: "Completed must be boolean" });
+            }
         }
         else {
             res.status(400).send({ status: 400, message: "Task is required" });
