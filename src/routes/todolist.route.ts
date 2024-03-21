@@ -126,21 +126,29 @@ app.delete("/:list_id", (req, res)=>{
     }
 });
 
-app.patch("/:list_id", (req, res)=>{
-    if(req.body.title){
-        console.log("title exists")
-        let theListIndex = checkListExists(parseInt(req.params.list_id))
-        if(theListIndex != -1){
-            todoArray[theListIndex].title = req.body.title;
-            res.status(204).send({status:204, message:"Todo list updated"});
+app.patch("/:list_id", AuthChecker, CheckListExists, (req, res)=>{
+    let currentUser = res.getHeader("currentuser") as string[];
+    let theListIndex = checkListExists(parseInt(req.params.list_id))
+    let theTodo = todoArray[theListIndex];
+    if(theTodo.created_by == parseInt(currentUser[2].split("=")[1]) || theTodo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])){
+        if(req.body.title){
+            console.log("title exists")
+            let theListIndex = checkListExists(parseInt(req.params.list_id))
+            if(theListIndex != -1){
+                todoArray[theListIndex].title = req.body.title;
+                res.status(204).send({status:204, message:"Todo list updated"});
+            }
+            else{
+                console.log("todo doesnt exist")
+                res.status(404).send({status:404, message:"Todo list not found"});
+            }
         }
         else{
-            console.log("todo doesnt exist")
-            res.status(404).send({status:404, message:"Todo list not found"});
+            res.status(400).send({status:400, message:"Title is required"});
         }
     }
     else{
-        res.status(400).send({status:400, message:"Title is required"});
+        res.status(403).send({status:403, message:"Unauthorized"});
     }
 });
 
@@ -178,8 +186,7 @@ app.get("/", AuthChecker, (req, res)=>{
 });
 
 app.post("/", AuthChecker, (req, res)=>{
-    if(req.body.title)
-    {
+    if(req.body.title){
         let loggedInUserInfo = res.getHeader("currentuser") as string[];
         let title = req.body.title;
         let newTodoList = new TodoList(todoIds, title, req.body.public_list, parseInt(loggedInUserInfo[2].split("=")[1]));
