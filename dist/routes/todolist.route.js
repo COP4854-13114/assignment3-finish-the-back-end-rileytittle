@@ -8,13 +8,14 @@ const express_1 = require("express");
 const express_2 = __importDefault(require("express"));
 const todolist_model_1 = require("../models/todolist.model");
 const todolistitem_model_1 = require("../models/todolistitem.model");
+const auth_utils_1 = require("../utils/auth.utils");
 let todoIds = 0;
 let itemIds = 0;
 let app = (0, express_1.Router)();
 exports.app = app;
 app.use(express_2.default.json());
 let todoArray = [];
-app.delete("/:list_id/item/:itemId", (req, res) => {
+app.delete("/:list_id/item/:itemId", auth_utils_1.AuthChecker, (req, res) => {
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if (theListIndex != -1) {
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
@@ -30,7 +31,7 @@ app.delete("/:list_id/item/:itemId", (req, res) => {
         res.status(404).send({ status: 404, message: "Todo list not found" });
     }
 });
-app.patch("/:list_id/item/:itemId", (req, res) => {
+app.patch("/:list_id/item/:itemId", auth_utils_1.AuthChecker, (req, res) => {
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if (theListIndex != -1) {
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));

@@ -2,6 +2,7 @@ import { Router } from "express"
 import express from "express"
 import { TodoList} from "../models/todolist.model"
 import { TodoListItem } from "../models/todolistitem.model";
+import { AuthChecker } from "../utils/auth.utils";
 let todoIds = 0;
 let itemIds = 0;
 let app = Router();
@@ -9,7 +10,7 @@ app.use(express.json());
 
 let todoArray: TodoList[]=[];
 
-app.delete("/:list_id/item/:itemId", (req, res)=>{
+app.delete("/:list_id/item/:itemId", AuthChecker, (req, res)=>{
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if(theListIndex != -1){
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
@@ -26,7 +27,7 @@ app.delete("/:list_id/item/:itemId", (req, res)=>{
     }
 });
 
-app.patch("/:list_id/item/:itemId", (req, res)=>{
+app.patch("/:list_id/item/:itemId", AuthChecker, (req, res)=>{
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if(theListIndex != -1){
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));

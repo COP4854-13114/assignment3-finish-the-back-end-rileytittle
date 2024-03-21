@@ -1,13 +1,7 @@
-import express from "express";
 import jwt from "jsonwebtoken";
-import { app as TodoRouter } from "./routes/todolist.route"
-import { app as UserRouter } from "./routes/users.route"
-import { AuthChecker } from "./utils/auth.utils";
+import { Request, Response, NextFunction } from "express";
 
-let app = express();
-app.use(express.json());
-/*
-app.use("/", (req, res, next)=>{
+let AuthChecker = (req: Request, res: Response, next: NextFunction)=>{
     if(req.headers["authorization"]){
         if(req.headers["authorization"].includes("Bearer")){
             let token = req.headers["authorization"].split(" ")[1];
@@ -20,20 +14,16 @@ app.use("/", (req, res, next)=>{
                 res.status(401).send({status:401, message:"Unauthorized"});
             }
         }
-        else if(req.headers["authorization"].includes("Basic") && req.url == "/user/login"){
-            console.log("SEcond branch entered")
+        else if(req.headers["authorization"].includes("Basic") && req.url == "/login"){
             next();
         }
         else{
-            console.log("Failed where you think")
             res.status(401).send({status:401, message:"Unauthorized"});
         }
     }
     else{
-        next();
+        res.status(401).send({status:401, message:"Unauthorized"});
     }
-})
- */
-app.use("/user", UserRouter);
-app.use("/todo", TodoRouter);
-app.listen(3000);
+}
+
+export { AuthChecker }
