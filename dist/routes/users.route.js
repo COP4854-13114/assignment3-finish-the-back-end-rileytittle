@@ -51,7 +51,10 @@ app.post("/login", auth_utils_1.AuthChecker, (req, res, next) => {
 });
 app.patch("/", auth_utils_1.AuthChecker, (req, res, next) => {
     let emailValid = true;
-    let loggedInUser = userList.find((user) => user.email == res.getHeader("currentuser"));
+    //console.log(res.getHeader("currentuser"))
+    //console.log(loggedInUserInfo)
+    let loggedInUserInfo = res.getHeader("currentuser");
+    let loggedInUser = userList.find((user) => user.email == loggedInUserInfo[0].split("=")[1]);
     if (req.body.email) {
         for (let u of userList) {
             if (u.email == req.body.email) {

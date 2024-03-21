@@ -133,12 +133,19 @@ app.patch("/:list_id", (req, res) => {
     }
 });
 app.get("/", (req, res) => {
-    res.status(200).send(todoArray);
+    let publicTodos = [];
+    for (let todo of todoArray) {
+        if (todo.publicList) {
+            publicTodos.push(todo);
+        }
+    }
+    res.status(200).send(publicTodos);
 });
-app.post("/", (req, res) => {
+app.post("/", auth_utils_1.AuthChecker, (req, res) => {
     if (req.body.title) {
+        let loggedInUserInfo = res.getHeader("currentuser");
         let title = req.body.title;
-        let newTodoList = new todolist_model_1.TodoList(todoIds, title);
+        let newTodoList = new todolist_model_1.TodoList(todoIds, title, req.body.public_list, parseInt(loggedInUserInfo[2].split("=")[1]));
         todoArray.push(newTodoList);
         todoIds++;
         res.status(201).send(newTodoList);

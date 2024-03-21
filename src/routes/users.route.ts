@@ -47,7 +47,10 @@ app.post("/login", AuthChecker, (req, res, next)=>{
 
 app.patch("/", AuthChecker, (req, res, next)=>{
     let emailValid = true;
-    let loggedInUser = userList.find((user) => user.email == res.getHeader("currentuser"))
+    //console.log(res.getHeader("currentuser"))
+    //console.log(loggedInUserInfo)
+    let loggedInUserInfo = res.getHeader("currentuser") as string[];
+    let loggedInUser = userList.find((user) => user.email == loggedInUserInfo[0].split("=")[1])
     if(req.body.email){
         for(let u of userList){
             if(u.email == req.body.email){

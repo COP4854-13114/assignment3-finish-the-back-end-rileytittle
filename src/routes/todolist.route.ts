@@ -134,14 +134,21 @@ app.patch("/:list_id", (req, res)=>{
 });
 
 app.get("/", (req, res)=>{
-    res.status(200).send(todoArray);
+    let publicTodos: TodoList[]=[];
+    for(let todo of todoArray){
+        if(todo.publicList){
+            publicTodos.push(todo);
+        }
+    }
+    res.status(200).send(publicTodos);
 });
 
-app.post("/", (req, res)=>{
+app.post("/", AuthChecker, (req, res)=>{
     if(req.body.title)
     {
+        let loggedInUserInfo = res.getHeader("currentuser") as string[];
         let title = req.body.title;
-        let newTodoList = new TodoList(todoIds, title);
+        let newTodoList = new TodoList(todoIds, title, req.body.public_list, parseInt(loggedInUserInfo[2].split("=")[1]));
         todoArray.push(newTodoList);
         todoIds++;
         res.status(201).send(newTodoList);

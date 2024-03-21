@@ -5,11 +5,16 @@ class TodoList {
     id;
     title;
     createdAt;
+    publicList;
+    createdBy;
     listItems = [];
-    constructor(id, title) {
+    sharedWith = [];
+    constructor(id, title, publicList, createdBy) {
         this.id = id;
         this.title = title;
         this.createdAt = new Date();
+        this.publicList = publicList;
+        this.createdBy = createdBy;
     }
 }
 exports.TodoList = TodoList;

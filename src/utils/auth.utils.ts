@@ -7,7 +7,7 @@ let AuthChecker = (req: Request, res: Response, next: NextFunction)=>{
             let token = req.headers["authorization"].split(" ")[1];
             try{
                 let tokenContent = jwt.verify(token, "SUPERKEY") as any;
-                res.setHeader("currentuser", tokenContent.email)
+                res.setHeader("currentuser", ["email="+tokenContent.email, "name="+tokenContent.name, "id="+tokenContent.id]);
                 next();
             }
             catch(e){
