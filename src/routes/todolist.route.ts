@@ -3,6 +3,7 @@ import express from "express"
 import { TodoList} from "../models/todolist.model"
 import { TodoListItem } from "../models/todolistitem.model";
 import { AuthChecker } from "../utils/auth.utils";
+import { CheckListExists } from "../utils/checkforlist.utils";
 let todoIds = 0;
 let itemIds = 0;
 let app = Router();
@@ -15,7 +16,7 @@ app.delete("/:list_id/item/:itemId", AuthChecker, (req, res)=>{
     if(theListIndex != -1){
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
         if(theItemIndex != -1){
-            todoArray[theListIndex].listItems.splice(theItemIndex, 1);
+            todoArray[theListIndex].list_items.splice(theItemIndex, 1);
             res.status(204).send({status:204, message:"Todo list item deleted"});
         }
         else{
@@ -32,8 +33,8 @@ app.patch("/:list_id/item/:itemId", AuthChecker, (req, res)=>{
     if(theListIndex != -1){
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
         if(theItemIndex != -1){
-            todoArray[theListIndex].listItems[theItemIndex].task = req.body.task;
-            todoArray[theListIndex].listItems[theItemIndex].completed = req.body.completed;
+            todoArray[theListIndex].list_items[theItemIndex].task = req.body.task;
+            todoArray[theListIndex].list_items[theItemIndex].completed = req.body.completed;
             res.status(204).send({status:204, message:"Todo list item updated"});
         }
         else{
@@ -49,7 +50,7 @@ app.get("/:list_id/item/:itemId", (req, res)=>{
     if(theListIndex != -1){
         let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
         if(theItemIndex != -1){
-            res.status(200).send(todoArray[theListIndex].listItems[theItemIndex]);
+            res.status(200).send(todoArray[theListIndex].list_items[theItemIndex]);
         }
         else{
             res.status(404).send({status:404, message:"Todo list item not found"});
@@ -62,7 +63,7 @@ app.get("/:list_id/item/:itemId", (req, res)=>{
 app.get("/:list_id/items", (req, res)=>{
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if(theListIndex != -1){
-        res.status(200).send(todoArray[theListIndex].listItems);
+        res.status(200).send(todoArray[theListIndex].list_items);
     }
     else{
         res.status(404).send({status:404, message:"Todo list not found"});
@@ -75,9 +76,9 @@ app.post("/:list_id/item", (req, res)=>{
         if(req.body.task){
             if(typeof req.body.completed == "boolean")
             {
-                todoArray[theListIndex].listItems.length
+                todoArray[theListIndex].list_items.length
                 let newListItem = new TodoListItem(itemIds, req.body.task);
-                todoArray[theListIndex].listItems.push(newListItem);
+                todoArray[theListIndex].list_items.push(newListItem);
                 itemIds++;
                 res.status(201).send(newListItem);
             }
@@ -94,13 +95,23 @@ app.post("/:list_id/item", (req, res)=>{
     }
 });
 
-app.get("/:list_id", (req, res)=>{
+app.get("/:list_id", CheckListExists, AuthChecker, (req, res)=>{
+    let currentUser = res.getHeader("currentuser") as string[];
     let theListIndex = checkListExists(parseInt(req.params.list_id))
-    if(theListIndex != -1){
+    let theTodo = todoArray[theListIndex];
+    if(parseInt(currentUser[2].split("=")[1]) == theTodo.created_by){
         res.status(200).send(todoArray[theListIndex]);
     }
+    else if(theTodo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])){
+        res.status(200).send({id: theTodo.id, title: theTodo.title, public_list: theTodo.public_list,
+            created_by: theTodo.created_at, created_at: theTodo.created_at, list_items: theTodo.list_items})
+    }
+    else if(theTodo.public_list){
+        res.status(200).send({id: theTodo.id, title: theTodo.title, public_list: theTodo.public_list,
+            created_by: theTodo.created_at, created_at: theTodo.created_at, list_items: theTodo.list_items})
+    }
     else{
-        res.status(404).send({status:404, message:"List not found"});
+        res.status(401).send({status:401, message:"Unauthorized"});
     }
 });
 
@@ -133,14 +144,37 @@ app.patch("/:list_id", (req, res)=>{
     }
 });
 
-app.get("/", (req, res)=>{
-    let publicTodos: TodoList[]=[];
-    for(let todo of todoArray){
-        if(todo.publicList){
-            publicTodos.push(todo);
+app.get("/", AuthChecker, (req, res)=>{
+    let todosToShow: TodoList[]=[];
+    if(res.hasHeader("currentuser")){
+        let currentUser = res.getHeader("currentuser") as string[];
+        for(let todo of todoArray){
+            if(todo.created_by == parseInt(currentUser[2].split("=")[1])){
+                todosToShow.push(todo);
+            }
+            else if(todo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])){
+                todosToShow.push(todo);
+            }
+            else if(todo.public_list){
+                todosToShow.push(todo);
+            }
         }
     }
-    res.status(200).send(publicTodos);
+    else{
+        for(let todo of todoArray){
+            if(todo.public_list){
+                todosToShow.push(todo);
+            }
+        }
+    }
+    let formattedTodos = todosToShow.map(({id, title, created_at, created_by, public_list})=>({
+        id,
+        title,
+        created_at,
+        created_by, 
+        public_list
+    }));
+    res.status(200).send(formattedTodos);
 });
 
 app.post("/", AuthChecker, (req, res)=>{
@@ -151,7 +185,9 @@ app.post("/", AuthChecker, (req, res)=>{
         let newTodoList = new TodoList(todoIds, title, req.body.public_list, parseInt(loggedInUserInfo[2].split("=")[1]));
         todoArray.push(newTodoList);
         todoIds++;
-        res.status(201).send(newTodoList);
+        //console.log(newTodoList.shared_with[0][0])
+        res.status(201).send({id: newTodoList.id, title: newTodoList.title, created_at: newTodoList.created_at,
+            public_list: newTodoList.public_list, created_by: newTodoList.created_by, list_items: newTodoList.list_items});
     }
     else{
         res.status(400).send({status:400, message:"Title is required"});
@@ -162,7 +198,7 @@ function checkItemExists(listId: number, id: number){
     let list = todoArray.find(i => i.id === listId)
     if(list){
         let itemIndex = 0
-        for(let item of list.listItems){
+        for(let item of list.list_items){
             if(item.id == id){
                 return itemIndex;
             }
@@ -182,4 +218,4 @@ function checkListExists(id: number){
     }
     return -1
 }
-export { app }
+export { app, todoArray }

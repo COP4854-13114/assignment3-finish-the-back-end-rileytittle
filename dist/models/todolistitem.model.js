@@ -5,12 +5,12 @@ class TodoListItem {
     id;
     task;
     completed;
-    createdAt;
+    created_at;
     updatedAt;
     constructor(id, task) {
         this.id = id;
         this.task = task;
-        this.createdAt = new Date();
+        this.created_at = new Date();
         this.updatedAt = new Date();
         this.completed = false;
     }

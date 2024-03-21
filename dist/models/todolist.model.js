@@ -4,17 +4,17 @@ exports.TodoList = void 0;
 class TodoList {
     id;
     title;
-    createdAt;
-    publicList;
-    createdBy;
-    listItems = [];
-    sharedWith = [];
-    constructor(id, title, publicList, createdBy) {
+    created_at;
+    public_list;
+    created_by;
+    list_items = [];
+    shared_with = [];
+    constructor(id, title, public_list, created_by) {
         this.id = id;
         this.title = title;
-        this.createdAt = new Date();
-        this.publicList = publicList;
-        this.createdBy = createdBy;
+        this.created_at = new Date();
+        this.public_list = public_list;
+        this.created_by = created_by;
     }
 }
 exports.TodoList = TodoList;

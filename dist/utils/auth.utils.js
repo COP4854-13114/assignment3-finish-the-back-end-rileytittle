@@ -25,6 +25,9 @@ let AuthChecker = (req, res, next) => {
             res.status(401).send({ status: 401, message: "Unauthorized" });
         }
     }
+    else if (req.originalUrl == "/todo/" && req.method == "GET") {
+        next();
+    }
     else {
         res.status(401).send({ status: 401, message: "Unauthorized" });
     }
