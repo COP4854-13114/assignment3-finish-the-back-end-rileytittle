@@ -24,6 +24,9 @@ let AuthChecker = (req: Request, res: Response, next: NextFunction)=>{
     else if(req.originalUrl == "/todo/" && req.method == "GET"){
         next();
     }
+    else if(req.originalUrl == "/todo/:list_id/items" && req.method == "GET"){
+        next();
+    }
     else{
         res.status(401).send({status:401, message:"Unauthorized"});
     }

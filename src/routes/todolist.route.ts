@@ -79,53 +79,81 @@ app.patch("/:list_id/item/:itemId", AuthChecker, (req, res)=>{
         res.status(404).send({status:404, message:"Todo list not found"});
     }
 });
-app.get("/:list_id/item/:itemId", (req, res)=>{
+app.get("/:list_id/item/:itemId", CheckListExists, AuthChecker, (req, res)=>{
+    let currentUser = res.getHeader("currentuser") as string[];
     let theListIndex = checkListExists(parseInt(req.params.list_id))
-    if(theListIndex != -1){
-        let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
-        if(theItemIndex != -1){
-            res.status(200).send(todoArray[theListIndex].list_items[theItemIndex]);
-        }
-        else{
-            res.status(404).send({status:404, message:"Todo list item not found"});
-        }
-    }
-    else{
-        res.status(404).send({status:404, message:"Todo list not found"});
-    }
-});
-app.get("/:list_id/items", (req, res)=>{
-    let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if(theListIndex != -1){
-        res.status(200).send(todoArray[theListIndex].list_items);
-    }
-    else{
-        res.status(404).send({status:404, message:"Todo list not found"});
-    }
-});
-// Fix HERE
-app.post("/:list_id/item", (req, res)=>{
-    let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if(theListIndex != -1){
-        if(req.body.task){
-            if(typeof req.body.completed == "boolean")
-            {
-                todoArray[theListIndex].list_items.length
-                let newListItem = new TodoListItem(itemIds, req.body.task);
-                todoArray[theListIndex].list_items.push(newListItem);
-                itemIds++;
-                res.status(201).send(newListItem);
+    let theTodo = todoArray[theListIndex];
+    if(theTodo.created_by == parseInt(currentUser[2].split("=")[1]) ||
+        theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])){
+            if(theListIndex != -1){
+                let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
+                if(theItemIndex != -1){
+                    res.status(200).send(todoArray[theListIndex].list_items[theItemIndex]);
+                }
+                else{
+                    res.status(404).send({status:404, message:"Todo list item not found"});
+                }
             }
             else{
-                res.status(400).send({status:400, message:"Completed must be boolean"})
+                res.status(404).send({status:404, message:"Todo list not found"});
             }
-        }
-        else{
-            res.status(400).send({status:400, message:"Task is required"});
-        }
     }
     else{
-        res.status(404).send({status:404, message:"Todo list not found"});
+        res.status(403).send({status:403, message:"Unauthorized"});
+    }
+    
+});
+app.get("/:list_id/items", AuthChecker, CheckListExists, (req, res)=>{
+    let currentUser = res.getHeader("currentuser") as string[];
+    let theListIndex = checkListExists(parseInt(req.params.list_id))
+    let theTodo = todoArray[theListIndex];
+    let itemsToShare: TodoListItem[] = [];
+    if(res.hasHeader("currentuser")){
+        if(parseInt(currentUser[2].split("=")[1]) == theTodo.created_by){
+            res.status(200).send(theTodo.list_items);
+        }
+        else{
+            res.status(403).send({status:403, message:"Not authorized"});
+        }
+    }
+    else if(theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])){
+        res.status(200).send(theTodo.list_items);
+    }
+    else{
+        if(theTodo.public_list){
+            res.status(200).send(theTodo.list_items);
+        }
+        else{
+            res.status(403).send({status:403, message:"Not authorized"});
+        }
+    }
+});
+
+app.post("/:list_id/item", CheckListExists, AuthChecker, (req, res)=>{
+    let currentUser = res.getHeader("currentuser") as string[];
+    let theListIndex = checkListExists(parseInt(req.params.list_id));
+    let theTodo = todoArray[theListIndex];
+    if(theTodo.created_by == parseInt(currentUser[2].split("=")[1]) ||
+        theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])){
+            if(req.body.task){
+                if(typeof req.body.completed == "boolean")
+                {
+                    todoArray[theListIndex].list_items.length
+                    let newListItem = new TodoListItem(itemIds, req.body.task, todoArray[theListIndex].id);
+                    todoArray[theListIndex].list_items.push(newListItem);
+                    itemIds++;
+                    res.status(201).send(newListItem);
+                }
+                else{
+                    res.status(400).send({status:400, message:"Completed must be boolean"})
+                }
+            }
+            else{
+                res.status(400).send({status:400, message:"Task is required"});
+            }
+        }
+    else{
+        res.status(403).send({status:403, message:"Unauthorized"});
     }
 });
 

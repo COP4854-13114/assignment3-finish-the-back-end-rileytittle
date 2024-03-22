@@ -83,38 +83,64 @@ app.patch("/:list_id/item/:itemId", auth_utils_1.AuthChecker, (req, res) => {
         res.status(404).send({ status: 404, message: "Todo list not found" });
     }
 });
-app.get("/:list_id/item/:itemId", (req, res) => {
+app.get("/:list_id/item/:itemId", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if (theListIndex != -1) {
-        let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
-        if (theItemIndex != -1) {
-            res.status(200).send(todoArray[theListIndex].list_items[theItemIndex]);
+    let theTodo = todoArray[theListIndex];
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1]) ||
+        theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])) {
+        if (theListIndex != -1) {
+            let theItemIndex = checkItemExists(parseInt(req.params.list_id), parseInt(req.params.itemId));
+            if (theItemIndex != -1) {
+                res.status(200).send(todoArray[theListIndex].list_items[theItemIndex]);
+            }
+            else {
+                res.status(404).send({ status: 404, message: "Todo list item not found" });
+            }
         }
         else {
-            res.status(404).send({ status: 404, message: "Todo list item not found" });
+            res.status(404).send({ status: 404, message: "Todo list not found" });
         }
     }
     else {
-        res.status(404).send({ status: 404, message: "Todo list not found" });
+        res.status(403).send({ status: 403, message: "Unauthorized" });
     }
 });
-app.get("/:list_id/items", (req, res) => {
+app.get("/:list_id/items", auth_utils_1.AuthChecker, checkforlist_utils_1.CheckListExists, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if (theListIndex != -1) {
-        res.status(200).send(todoArray[theListIndex].list_items);
+    let theTodo = todoArray[theListIndex];
+    let itemsToShare = [];
+    if (res.hasHeader("currentuser")) {
+        if (parseInt(currentUser[2].split("=")[1]) == theTodo.created_by) {
+            res.status(200).send(theTodo.list_items);
+        }
+        else {
+            res.status(403).send({ status: 403, message: "Not authorized" });
+        }
+    }
+    else if (theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])) {
+        res.status(200).send(theTodo.list_items);
     }
     else {
-        res.status(404).send({ status: 404, message: "Todo list not found" });
+        if (theTodo.public_list) {
+            res.status(200).send(theTodo.list_items);
+        }
+        else {
+            res.status(403).send({ status: 403, message: "Not authorized" });
+        }
     }
 });
-// Fix HERE
-app.post("/:list_id/item", (req, res) => {
+app.post("/:list_id/item", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if (theListIndex != -1) {
+    let theTodo = todoArray[theListIndex];
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1]) ||
+        theTodo.shared_with.find((user) => user["email"] == currentUser[0].split("=")[1])) {
         if (req.body.task) {
             if (typeof req.body.completed == "boolean") {
                 todoArray[theListIndex].list_items.length;
-                let newListItem = new todolistitem_model_1.TodoListItem(itemIds, req.body.task);
+                let newListItem = new todolistitem_model_1.TodoListItem(itemIds, req.body.task, todoArray[theListIndex].id);
                 todoArray[theListIndex].list_items.push(newListItem);
                 itemIds++;
                 res.status(201).send(newListItem);
@@ -128,7 +154,7 @@ app.post("/:list_id/item", (req, res) => {
         }
     }
     else {
-        res.status(404).send({ status: 404, message: "Todo list not found" });
+        res.status(403).send({ status: 403, message: "Unauthorized" });
     }
 });
 app.post("/:list_id/share", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
