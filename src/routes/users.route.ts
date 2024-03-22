@@ -109,4 +109,4 @@ app.post("/", (req, res, next)=>{
     }
 });
 
-export { app }
+export { app, userList}

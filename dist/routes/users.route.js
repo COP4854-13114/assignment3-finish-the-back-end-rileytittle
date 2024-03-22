@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.app = void 0;
+exports.userList = exports.app = void 0;
 const express_1 = require("express");
 const user_model_1 = require("../models/user.model");
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -13,6 +13,7 @@ let app = (0, express_1.Router)();
 exports.app = app;
 let saltRounds = 10;
 let userList = [];
+exports.userList = userList;
 app.post("/login", auth_utils_1.AuthChecker, (req, res, next) => {
     //console.log(userList);
     //console.log("Login entered")

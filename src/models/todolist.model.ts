@@ -7,7 +7,7 @@ export class TodoList{
     public_list: boolean;
     created_by: number;
     list_items: TodoListItem[] = [];
-    shared_with: [email: string, name: string][] = [];
+    shared_with: {email: string, name: string}[] = [];
     constructor(id: number, title: string, public_list: boolean, created_by: number){
         this.id = id;
         this.title = title;

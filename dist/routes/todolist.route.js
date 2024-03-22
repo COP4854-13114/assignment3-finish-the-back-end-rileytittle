@@ -10,6 +10,7 @@ const todolist_model_1 = require("../models/todolist.model");
 const todolistitem_model_1 = require("../models/todolistitem.model");
 const auth_utils_1 = require("../utils/auth.utils");
 const checkforlist_utils_1 = require("../utils/checkforlist.utils");
+const users_route_1 = require("./users.route");
 let todoIds = 0;
 let itemIds = 0;
 let app = (0, express_1.Router)();
@@ -17,6 +18,38 @@ exports.app = app;
 app.use(express_2.default.json());
 let todoArray = [];
 exports.todoArray = todoArray;
+app.delete("/:list_id/share/:shared_user_email?", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
+    let theListIndex = checkListExists(parseInt(req.params.list_id));
+    let theTodo = todoArray[theListIndex];
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1])) {
+        if (req.params.shared_user_email) {
+            let emailExists = false;
+            let sharedUserIndex = 0;
+            for (let u of theTodo.shared_with) {
+                if (u.email == req.params.shared_user_email) {
+                    emailExists = true;
+                    break;
+                }
+                sharedUserIndex++;
+            }
+            if (emailExists) {
+                theTodo.shared_with.splice(sharedUserIndex, 1);
+                res.status(204).send({ status: 204, message: "Shared list removed" });
+            }
+            else {
+                res.status(404).send({ status: 404, message: "User not found" });
+            }
+        }
+        else {
+            theTodo.shared_with = [];
+            res.status(204).send({ status: 204, message: "Shared list removed" });
+        }
+    }
+    else {
+        res.status(403).send({ status: 403, message: "Unauthorized" });
+    }
+});
 app.delete("/:list_id/item/:itemId", auth_utils_1.AuthChecker, (req, res) => {
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     if (theListIndex != -1) {
@@ -98,6 +131,39 @@ app.post("/:list_id/item", (req, res) => {
         res.status(404).send({ status: 404, message: "Todo list not found" });
     }
 });
+app.post("/:list_id/share", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
+    let theListIndex = checkListExists(parseInt(req.params.list_id));
+    let theTodo = todoArray[theListIndex];
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1])) {
+        if (req.body.email) {
+            let emailExists = false;
+            let sharedUser = undefined;
+            for (let u of users_route_1.userList) {
+                if (u.email == req.body.email) {
+                    emailExists = true;
+                    sharedUser = u;
+                    break;
+                }
+            }
+            if (emailExists) {
+                if (sharedUser) {
+                    theTodo.shared_with.push({ email: sharedUser.email, name: sharedUser.name });
+                    res.status(201).send(theTodo);
+                }
+            }
+            else {
+                res.status(404).send({ status: 404, message: "Email not in system" });
+            }
+        }
+        else {
+            res.status(400).send({ status: 400, message: "Email must be supplied" });
+        }
+    }
+    else {
+        res.status(403).send({ status: 403, message: "Unauthorized" });
+    }
+});
 app.get("/:list_id", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChecker, (req, res) => {
     let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
@@ -105,7 +171,7 @@ app.get("/:list_id", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChec
     if (parseInt(currentUser[2].split("=")[1]) == theTodo.created_by) {
         res.status(200).send(todoArray[theListIndex]);
     }
-    else if (theTodo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])) {
+    else if (theTodo.shared_with.find((element) => element["email"] == currentUser[0].split("=")[1])) {
         res.status(200).send({ id: theTodo.id, title: theTodo.title, public_list: theTodo.public_list,
             created_by: theTodo.created_at, created_at: theTodo.created_at, list_items: theTodo.list_items });
     }
@@ -117,21 +183,23 @@ app.get("/:list_id", checkforlist_utils_1.CheckListExists, auth_utils_1.AuthChec
         res.status(401).send({ status: 401, message: "Unauthorized" });
     }
 });
-app.delete("/:list_id", (req, res) => {
+app.delete("/:list_id", auth_utils_1.AuthChecker, checkforlist_utils_1.CheckListExists, (req, res) => {
+    let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
-    if (theListIndex != -1) {
+    let theTodo = todoArray[theListIndex];
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1])) {
         todoArray.splice(theListIndex, 1);
         res.status(204).send({ status: 204, message: "Todo list deleted" });
     }
     else {
-        res.status(404).send({ status: 404, message: "Todo list not found" });
+        res.status(403).send({ status: 403, message: "Not authorized to delete todo list" });
     }
 });
 app.patch("/:list_id", auth_utils_1.AuthChecker, checkforlist_utils_1.CheckListExists, (req, res) => {
     let currentUser = res.getHeader("currentuser");
     let theListIndex = checkListExists(parseInt(req.params.list_id));
     let theTodo = todoArray[theListIndex];
-    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1]) || theTodo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])) {
+    if (theTodo.created_by == parseInt(currentUser[2].split("=")[1]) || theTodo.shared_with.find((element) => element["email"] == currentUser[0].split("=")[1])) {
         if (req.body.title) {
             console.log("title exists");
             let theListIndex = checkListExists(parseInt(req.params.list_id));
@@ -160,7 +228,7 @@ app.get("/", auth_utils_1.AuthChecker, (req, res) => {
             if (todo.created_by == parseInt(currentUser[2].split("=")[1])) {
                 todosToShow.push(todo);
             }
-            else if (todo.shared_with.find((element) => element[0] == currentUser[0].split("=")[1])) {
+            else if (todo.shared_with.find((element) => element["email"] == currentUser[0].split("=")[1])) {
                 todosToShow.push(todo);
             }
             else if (todo.public_list) {
