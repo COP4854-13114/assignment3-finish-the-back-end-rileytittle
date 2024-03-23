@@ -21,6 +21,9 @@ let AuthChecker = (req: Request, res: Response, next: NextFunction)=>{
             res.status(401).send({status:401, message:"Unauthorized"});
         }
     }
+    else if(req.originalUrl == "/todo/:list_id/item/:itemId" && req.method == "GET"){
+        res.status(403).send({status:403, message:"Unauthorized"});
+    }
     else if(req.originalUrl == "/todo/" && req.method == "GET"){
         next();
     }
@@ -28,6 +31,7 @@ let AuthChecker = (req: Request, res: Response, next: NextFunction)=>{
         next();
     }
     else{
+        console.log(req.originalUrl)
         res.status(401).send({status:401, message:"Unauthorized"});
     }
 }

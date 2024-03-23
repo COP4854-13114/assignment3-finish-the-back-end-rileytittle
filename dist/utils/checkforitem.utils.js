@@ -4,18 +4,29 @@ exports.CheckItemExists = void 0;
 const todolist_route_1 = require("../routes/todolist.route");
 let CheckItemExists = (req, res, next) => {
     let listId = parseInt(req.params.list_id);
-    let itemId = parseInt(req.params.itemId);
+    let id = parseInt(req.params.itemId);
+    let itemNotFound = true;
     let list = todolist_route_1.todoArray.find(i => i.id === listId);
     if (list) {
         let itemIndex = 0;
         for (let item of list.list_items) {
-            if (item.id == itemId) {
-                return itemIndex;
+            if (item.id == id) {
+                itemNotFound = false;
             }
             itemIndex++;
         }
-        return -1;
+        if (itemNotFound) {
+            res.status(404).send({ status: 404, message: "Item not found" });
+        }
+        else {
+            next();
+        }
     }
-    return -1;
+    if (itemNotFound) {
+        res.status(404).send({ status: 404, message: "Item not found" });
+    }
+    else {
+        next();
+    }
 };
 exports.CheckItemExists = CheckItemExists;

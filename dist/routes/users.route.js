@@ -69,6 +69,7 @@ app.patch("/", auth_utils_1.AuthChecker, (req, res, next) => {
         }
         else {
             res.status(400).send({ status: 400, message: "Email already in use" });
+            return;
         }
     }
     if (req.body.password) {
