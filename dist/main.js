@@ -1,11 +1,13 @@
-import express from "express";
-import jwt from "jsonwebtoken";
-import { app as TodoRouter } from "./routes/todolist.route"
-import { app as UserRouter } from "./routes/users.route"
-import { AuthChecker } from "./utils/auth.utils";
-
-let app = express();
-app.use(express.json());
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const todolist_route_1 = require("./routes/todolist.route");
+const users_route_1 = require("./routes/users.route");
+let app = (0, express_1.default)();
+app.use(express_1.default.json());
 /*
 app.use("/", (req, res, next)=>{
     if(req.headers["authorization"]){
@@ -34,6 +36,6 @@ app.use("/", (req, res, next)=>{
     }
 })
  */
-app.use("/user", UserRouter);
-app.use("/todo", TodoRouter);
+app.use("/user", users_route_1.app);
+app.use("/todo", todolist_route_1.app);
 app.listen(3000);
